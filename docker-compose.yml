@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: scheduler-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - scheduler_mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: scheduler_db
+
+  scheduler:
+    build: .
+    container_name: scheduler-service
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/scheduler_db
+      NOTIFICATION_SERVICE_URL: http://host.docker.internal:4002
+      ANALYTICS_SERVICE_URL: http://host.docker.internal:4000
+    depends_on:
+      - mongo
+
+volumes:
+  scheduler_mongo_data:
