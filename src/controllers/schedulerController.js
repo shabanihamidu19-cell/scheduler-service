@@ -1,72 +1,71 @@
 const schedulerService = require('../services/schedulerService');
+const { AppError } = require('../middleware/errorHandler');
 
-exports.createJob = async (req, res) => {
+exports.createJob = async (req, res, next) => {
   try {
-    const { jobName, cronExpression, action, payload, createdBy } = req.body;
-
-    if (!jobName || !cronExpression || !action) {
-      return res.status(400).json({
-        success: false,
-        message: 'jobName, cronExpression and action are required'
-      });
-    }
-
-    const job = await schedulerService.createJob({
-      jobName,
-      cronExpression,
-      action,
-      payload: payload || {},
-      createdBy: createdBy || 'api'
+    const job = await schedulerService.createJob(req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Job scheduled successfully',
+      data: job
     });
-
-    res.status(201).json({ success: true, data: job });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Failed to create job' });
+    next(error);
   }
 };
 
-exports.getJobs = async (req, res) => {
+exports.getJobs = async (req, res, next) => {
   try {
-    const jobs = await schedulerService.getJobs(req.query);
-    res.json({ success: true, count: jobs.length, data: jobs });
+    const result = await schedulerService.getJobs(req.query);
+    res.json({
+      success: true,
+      ...result
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch jobs' });
+    next(error);
   }
 };
 
-exports.getJob = async (req, res) => {
+exports.getJob = async (req, res, next) => {
   try {
     const job = await schedulerService.getJobById(req.params.id);
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      throw new AppError('Job not found', 404);
     }
     res.json({ success: true, data: job });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch job' });
+    next(error);
   }
 };
 
-exports.updateJob = async (req, res) => {
+exports.updateJob = async (req, res, next) => {
   try {
     const job = await schedulerService.updateJob(req.params.id, req.body);
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      throw new AppError('Job not found', 404);
     }
-    res.json({ success: true, data: job });
+    res.json({
+      success: true,
+      message: 'Job updated successfully',
+      data: job
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update job' });
+    next(error);
   }
 };
 
-exports.cancelJob = async (req, res) => {
+exports.cancelJob = async (req, res, next) => {
   try {
-    const job = await schedulerService.cancelJob(req.params.id);
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+    const result = await schedulerService.cancelJob(req.params.id);
+    if (!result) {
+      throw new AppError('Job not found', 404);
     }
-    res.json({ success: true, message: 'Job cancelled', data: job });
+    res.json({
+      success: true,
+      message: 'Job cancelled successfully',
+      data: result
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to cancel job' });
+    next(error);
   }
 };
